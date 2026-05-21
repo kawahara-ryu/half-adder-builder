@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>体験型：半加算器ビルダー</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- タイトル -->
+        <div id="screen-title" class="screen active">
+            <div class="chip-border"><img src="./half_adder.png" alt="半加算器ビルダー"></div>
+            <h1 class="workshop-title">HALF ADDER</h1>
+            <h2>半加算器ビルダー</h2>
+            <p class="subtitle">回路を組み立てて計算させろ！</p>
+            <button class="w-btn" onclick="startGame()">🔧 工房に入る</button>
+        </div>
+
+        <!-- STAGE 1: 論理ゲートを触る -->
+        <div id="screen-stage1" class="screen">
+            <h2>🔧 工程1: 論理ゲートを触ってみろ！</h2>
+            <p class="stage-desc">スイッチA・Bを切り替えて、各ゲートの出力がどう変わるか観察しよう！</p>
+            <div class="switch-row">
+                <div class="switch-box">
+                    <span>入力 A</span>
+                    <button class="big-switch" id="s1-a" onclick="toggleSwitch('s1-a')">0</button>
+                </div>
+                <div class="switch-box">
+                    <span>入力 B</span>
+                    <button class="big-switch" id="s1-b" onclick="toggleSwitch('s1-b')">0</button>
+                </div>
+            </div>
+            <div class="gate-results">
+                <div class="gate-row">
+                    <span class="gate-name">AND (かつ)</span>
+                    <span class="gate-output" id="s1-and">0</span>
+                    <span class="gate-desc">両方1のとき1</span>
+                </div>
+                <div class="gate-row">
+                    <span class="gate-name">OR (または)</span>
+                    <span class="gate-output" id="s1-or">0</span>
+                    <span class="gate-desc">どちらか1なら1</span>
+                </div>
+
+                <div class="gate-row">
+                    <span class="gate-name">NOT A</span>
+                    <span class="gate-output" id="s1-nota">1</span>
+                    <span class="gate-desc">反転</span>
+                </div>
+            </div>
+            <div class="mission-box">
+                <p class="mission-label">🎯 ミッション</p>
+                <p class="mission-target">A=1, B=1 にしたとき、ANDとORの出力がそれぞれ何になるか確認しよう！</p>
+            </div>
+            <button class="w-btn" id="s1-next" onclick="checkStage1()" disabled>全パターンを試してから進む ▶</button>
+        </div>
+
+        <!-- STAGE 2: 半加算器を組み立て -->
+        <div id="screen-stage2" class="screen">
+            <h2>🔧 工程2: 半加算器を組み立てろ！</h2>
+            <p class="stage-desc">半加算器 = 1ビットの足し算回路。<br>「和(S)」と「桁上げ(C)」にどのゲートを使う？</p>
+            <div class="build-area">
+                <div class="build-slot">
+                    <span class="slot-label">和 (S: Sum) の回路</span>
+                    <p class="slot-hint">1の位は「片方だけ1」の時に1になる。AND・OR・NOTをどう組み合わせる？</p>
+                    <div class="slot-choices" style="flex-direction: column; gap: 8px;">
+                        <button class="gate-choice" onclick="selectGate('sum','A AND B')">A AND B</button>
+                        <button class="gate-choice" onclick="selectGate('sum','A OR B')">A OR B</button>
+                        <button class="gate-choice" onclick="selectGate('sum','(A OR B) AND (NOT (A AND B))')">(A OR B) AND (NOT (A AND B))</button>
+                    </div>
+                    <p class="slot-selected" id="sum-selected">未選択</p>
+                </div>
+                <div class="build-slot">
+                    <span class="slot-label">桁上げ (C: Carry) の回路</span>
+                    <p class="slot-hint">繰り上がりが起きるのは「両方1」の時。どの回路？</p>
+                    <div class="slot-choices" style="flex-direction: column; gap: 8px;">
+                        <button class="gate-choice" onclick="selectGate('carry','A AND B')">A AND B</button>
+                        <button class="gate-choice" onclick="selectGate('carry','A OR B')">A OR B</button>
+                        <button class="gate-choice" onclick="selectGate('carry','(A OR B) AND (NOT (A AND B))')">(A OR B) AND (NOT (A AND B))</button>
+                    </div>
+                    <p class="slot-selected" id="carry-selected">未選択</p>
+                </div>
+            </div>
+            <button class="w-btn" onclick="checkStage2()">🔧 回路を通電テスト！</button>
+        </div>
+
+        <!-- STAGE 3: 半加算器を動かす -->
+        <div id="screen-stage3" class="screen">
+            <h2>🔧 工程3: 半加算器を動かせ！</h2>
+            <p class="stage-desc">組み立てた半加算器にスイッチで入力して、計算結果を確認しよう！</p>
+            <div class="switch-row">
+                <div class="switch-box">
+                    <span>入力 A</span>
+                    <button class="big-switch" id="s3-a" onclick="toggleSwitch('s3-a');updateHalfAdder()">0</button>
+                </div>
+                <div class="switch-box">
+                    <span>入力 B</span>
+                    <button class="big-switch" id="s3-b" onclick="toggleSwitch('s3-b');updateHalfAdder()">0</button>
+                </div>
+            </div>
+            <div class="circuit-display">
+                <div class="circuit-line">
+                    <span>和回路 (S): </span>
+                    <span class="circuit-val" id="ha-s">0</span>
+                </div>
+                <div class="circuit-line">
+                    <span>桁上げ回路 (C): </span>
+                    <span class="circuit-val" id="ha-c">0</span>
+                </div>
+            </div>
+            <div class="calc-display">
+                <span class="calc-a" id="calc-a">0</span>
+                <span class="calc-op">+</span>
+                <span class="calc-b" id="calc-b">0</span>
+                <span class="calc-eq">=</span>
+                <span class="calc-result" id="calc-result">0</span>
+                <span class="calc-binary" id="calc-binary">(2進: 00)</span>
+            </div>
+            <div class="truth-table">
+                <table>
+                    <tr><th>A</th><th>B</th><th>S(和)</th><th>C(桁上げ)</th><th>確認</th></tr>
+                    <tr id="tt-00"><td>0</td><td>0</td><td>0</td><td>0</td><td class="tt-check">⬜</td></tr>
+                    <tr id="tt-01"><td>0</td><td>1</td><td>1</td><td>0</td><td class="tt-check">⬜</td></tr>
+                    <tr id="tt-10"><td>1</td><td>0</td><td>1</td><td>0</td><td class="tt-check">⬜</td></tr>
+                    <tr id="tt-11"><td>1</td><td>1</td><td>0</td><td>1</td><td class="tt-check">⬜</td></tr>
+                </table>
+            </div>
+            <div class="mission-box">
+                <p class="mission-label">🎯 ミッション</p>
+                <p class="mission-target">4つのパターン(00,01,10,11)をすべて試して真理値表を完成させろ！</p>
+            </div>
+            <button class="w-btn" id="s3-next" onclick="checkStage3()" disabled>すべて確認して完了 ▶</button>
+        </div>
+
+        <!-- ゲームオーバー -->
+        <div id="screen-gameover" class="screen">
+            <h1 class="gameover-title">SHORT CIRCUIT</h1>
+            <p class="gameover-subtitle" id="gameover-reason">回路がショートした…</p>
+            <img src="./half_adder.png" alt="ショート" style="width:100px; filter:grayscale(100%) brightness(0.5); margin-bottom:20px; border-radius:50%;">
+            <button class="w-btn" onclick="startGame()">↻ 修理して再挑戦</button>
+        </div>
+
+        <!-- クリア -->
+        <div id="screen-clear" class="screen">
+            <img src="./half_adder_victory.png" alt="完成" style="width:120px; height:120px; object-fit:cover; border-radius:50%; border:2px solid #00ff88; margin-bottom:15px;">
+            <h1 class="clear-title">CIRCUIT COMPLETE!</h1>
+            <p class="clear-subtitle">半加算器を完璧に理解した！</p>
+            <div class="summary-box">
+                <h3>📝 今日の学び</h3>
+                <ul>
+                    <li>半加算器は基本論理回路(AND,OR,NOT)の組み合わせで作れる</li>
+                    <li>和(S) = (A OR B) AND (NOT (A AND B))</li>
+                    <li>桁上げ(C) = A AND B</li>
+                    <li>全加算器 = 半加算器×2 + OR</li>
+                </ul>
+            </div>
+            <div class="password-box">
+                <p>🗝️ Google Classroomの解答に以下の「あいことば」を入力してください。</p>
+                <p class="password-text">ANDゲートに猫を通したら出力が「ニャ」だった</p>
+            </div>
+            <button class="w-btn" onclick="location.reload()">もう一度組み立てる</button>
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>
